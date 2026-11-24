@@ -1,8 +1,15 @@
 # Laboratório Copy Trade (paper trading, 24/7)
 
 **Dinheiro fictício, mercado real.** Não precisa de conta, chave de API nem instalar nada
-além do Python. Dê dois cliques em `iniciar_laboratorio.bat` (ou rode `py -m lab`) e o painel
-abre em <http://127.0.0.1:8765>.
+além do **Python 3.10 ou mais novo** (<https://www.python.org/downloads/>; no Windows marque
+"Add python.exe to PATH" na instalação).
+
+- **Windows:** dois cliques em `iniciar_laboratorio.bat`. Se abrir num editor de texto em vez
+  de rodar, clique com o botão direito no arquivo → **Abrir**, ou rode `py -m lab` no terminal
+  dentro da pasta.
+- **Mac / Linux:** no terminal, dentro da pasta: `bash iniciar_laboratorio.sh`
+
+O painel abre em <http://127.0.0.1:8765>.
 
 O que roda:
 
