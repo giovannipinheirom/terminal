@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laboratório Copy Trade</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root {
+    --bg: #0b0e13; --panel: #11151c; --line: #1e242e; --text: #d7dde6; --muted: #7d8794;
+    --green: #22c55e; --red: #ef4444; --accent: #f5c542; --blue: #60a5fa;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+           padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  h1 { font-size: 16px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 12px; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: #1a2230; color: var(--accent); }
+  main { padding: 16px 20px 40px; max-width: 1400px; margin: 0 auto; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .card .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  .card .v { font-size: 20px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .card .d { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .pos { color: var(--green); } .neg { color: var(--red); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .chartbar { display: flex; gap: 6px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .chartbar button, .tabs button { background: transparent; color: var(--muted); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; }
+  .chartbar button.on { color: var(--text); border-color: #3a4556; background: #182030; }
+  .legend { margin-left: auto; color: var(--muted); font-size: 11px; display: flex; gap: 14px; flex-wrap: wrap; }
+  #chart { height: 380px; }
+  #equity { height: 180px; }
+  .tabs { display: flex; gap: 4px; margin: 18px 0 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px; }
+  .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
+  .tab { display: none; } .tab.on { display: block; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; background: #0f131a; position: sticky; top: 0; }
+  th:first-child, td:first-child, td.l, th.l { text-align: left; }
+  tr.follow td:first-child::before { content: "★ "; color: var(--accent); }
+  tr.monkey td { color: var(--muted); }
+  .note { color: var(--muted); font-size: 12px; padding: 10px 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } #chart { height: 300px; } }
+  .log { max-height: 300px; overflow: auto; font-size: 12px; }
+  .log div { padding: 5px 12px; border-bottom: 1px solid var(--line); }
+  .log time { color: var(--muted); margin-right: 8px; }
+  pre.report { white-space: pre-wrap; padding: 14px; margin: 0; font: 12px/1.5 ui-monospace, Consolas, monospace; max-height: 600px; overflow: auto; }
+  .btn { background: #182030; color: var(--text); border: 1px solid #3a4556; border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  a { color: var(--blue); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Laboratório Copy Trade <span class="badge">DINHEIRO FICTÍCIO · MERCADO REAL</span></h1>
+    <div class="sub" id="uptime">carregando…</div>
+  </div>
+  <div class="sub" id="updated"></div>
+</header>
+<main>
+  <div class="cards" id="cards"></div>
+
+  <div class="panel">
+    <div class="chartbar">
+      <button data-s="BTCUSDT" class="on">BTC</button>
+      <button data-s="ETHUSDT">ETH</button>
+      <button data-s="SOLUSDT">SOL</button>
+      <div class="legend"><span>▲ compra do copy bot</span><span>▼ venda do copy bot</span><span>candles de 1 min · Binance</span></div>
+    </div>
+    <div id="chart"></div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-t="copy" class="on">Baleias e copy trade</button>
+    <button data-t="bin">Opções binárias</button>
+    <button data-t="meme">Memecoins</button>
+    <button data-t="rot">Rotinas e perguntas</button>
+  </div>
+
+  <section class="tab on" id="t-copy">
+    <div class="grid2">
+      <div class="panel"><div class="chartbar">Patrimônio dos copy bots (US$)
+        <div class="legend"><span style="color:var(--accent)">● cripto</span><span style="color:var(--blue)">● memecoin</span></div></div>
+        <div id="equity"></div></div>
+      <div class="panel"><div class="chartbar">Atividade do copy bot</div><div class="log" id="log"></div></div>
+    </div>
+    <h3>Cripto (BTC · ETH · SOL): 30 agentes</h3>
+    <div class="panel scroll"><table id="tbl-crypto"></table></div>
+    <h3>Memecoins (Solana): 26 agentes</h3>
+    <div class="panel scroll"><table id="tbl-meme"></table></div>
+    <p class="note">★ = agente que o copy bot está seguindo agora. Linhas em cinza = agentes aleatórios ("macacos"), usados como controle: estratégia que não bate os macacos está ganhando por sorte.</p>
+  </section>
+
+  <section class="tab" id="t-bin">
+    <p class="note" id="bin-note"></p>
+    <div class="panel scroll"><table id="tbl-bin"></table></div>
+    <p class="note">Simulação apenas. Opções binárias não são autorizadas pela CVM no Brasil; este laboratório não envia apostas para nenhuma corretora.</p>
+  </section>
+
+  <section class="tab" id="t-meme">
+    <div class="grid2">
+      <div class="panel scroll"><div class="chartbar">Posições abertas do copy bot</div><table id="tbl-mpos"></table></div>
+      <div class="panel scroll"><div class="chartbar">Memecoins monitoradas agora (Dexscreener)</div><table id="tbl-mlist"></table></div>
+    </div>
+    <p class="note">A simulação desconta 1% de taxa da DEX, o impacto da sua ordem no preço (pela liquidez da pool) e trata como golpe (rug pull, perda de 90%) a moeda que some ou fica sem liquidez.</p>
+  </section>
+
+  <section class="tab" id="t-rot">
+    <div class="panel">
+      <div class="chartbar">Relatórios diários (para o Claude analisar)
+        <button class="btn" id="newrep" style="margin-left:auto">Gerar relatório agora</button></div>
+      <div class="chartbar" id="replist"></div>
+      <pre class="report" id="report">Escolha um relatório ou gere um agora. Depois copie o texto e cole numa conversa com o Claude.</pre>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const fmt = (v, d = 2) => Number(v).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const usd = (v) => `<span class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}">US$ ${v > 0 ? "+" : ""}${fmt(v)}</span>`;
+const pct = (v) => `<span class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v > 0 ? "+" : ""}${fmt(v)}%</span>`;
+const ago = (ms) => { const h = ms / 3.6e6; return h < 1 ? `${Math.round(h * 60)} min` : h < 48 ? `${fmt(h, 1)} h` : `${fmt(h / 24, 1)} dias`; };
+const time = (ms) => new Date(ms).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+// ---------------- gráficos
+const dark = { layout: { background: { color: "#11151c" }, textColor: "#7d8794" },
+  grid: { vertLines: { color: "#1a1f28" }, horzLines: { color: "#1a1f28" } },
+  rightPriceScale: { borderColor: "#1e242e" }, timeScale: { borderColor: "#1e242e", timeVisible: true } };
+const chart = LightweightCharts.createChart($("#chart"), { ...dark, autoSize: true });
+const candles = chart.addCandlestickSeries({ upColor: "#22c55e", downColor: "#ef4444", borderVisible: false, wickUpColor: "#22c55e", wickDownColor: "#ef4444" });
+const volume = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "" });
+volume.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+const eq = LightweightCharts.createChart($("#equity"), { ...dark, autoSize: true });
+const eqC = eq.addLineSeries({ color: "#f5c542", lineWidth: 2 });
+const eqM = eq.addLineSeries({ color: "#60a5fa", lineWidth: 2 });
+
+let symbol = "BTCUSDT", firstFit = true;
+async function loadCandles() {
+  const d = await (await fetch(`/api/candles?s=${symbol}`)).json();
+  candles.setData(d.candles);
+  volume.setData(d.candles.map(c => ({ time: c.time, value: c.volume, color: c.close >= c.open ? "#22c55e55" : "#ef444455" })));
+  candles.setMarkers(d.markers.map(m => m.side === "buy"
+    ? { time: m.time, position: "belowBar", color: "#22c55e", shape: "arrowUp", text: "compra" }
+    : { time: m.time, position: "aboveBar", color: "#ef4444", shape: "arrowDown", text: "venda" }));
+  if (firstFit) { chart.timeScale().fitContent(); firstFit = false; }
+}
+document.querySelectorAll(".chartbar button[data-s]").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".chartbar button[data-s]").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); symbol = b.dataset.s; firstFit = true; loadCandles();
+});
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "t-" + b.dataset.t));
+});
+
+// ---------------- tabelas
+function table(el, cols, rows, rowClass = () => "") {
+  el.innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.l ? "l" : ""}">${c.h}</th>`).join("")}</tr></thead>` +
+    `<tbody>${rows.map(r => `<tr class="${rowClass(r)}">${cols.map(c => `<td class="${c.l ? "l" : ""}">${c.f(r)}</td>`).join("")}</tr>`).join("")}</tbody>`;
+}
+const agentCols = [
+  { h: "Agente", f: r => r.name, l: 1 }, { h: "Estratégia", f: r => r.kind, l: 1 },
+  { h: "Compras", f: r => r.buys }, { h: "Vendas", f: r => r.sells }, { h: "Moedas", f: r => r.coins },
+  { h: "Acerto", f: r => r.closed ? fmt(r.win_rate, 1) + "%" : "–" },
+  { h: "Queda máx.", f: r => fmt(r.max_dd, 1) + "%" },
+  { h: "Nota", f: r => r.score === null ? "<span class=sub>em teste</span>" : fmt(r.score) },
+  { h: "Resultado", f: r => usd(r.pnl) },
+];
+const agentRow = r => (r.following ? "follow " : "") + (r.name.includes("macaco") ? "monkey" : "");
+
+function card(k, v, d = "") { return `<div class="card"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`; }
+
+async function refresh() {
+  const s = await (await fetch("/api/state")).json();
+  const c = s.copy.cripto, m = s.copy.memecoin;
+  $("#uptime").textContent = `rodando há ${ago(s.now - s.started)} · ${s.decisions.toLocaleString("pt-BR")} decisões simuladas`;
+  $("#updated").textContent = "atualizado " + new Date(s.now).toLocaleTimeString("pt-BR");
+  const bestBin = s.binary[0];
+  $("#cards").innerHTML =
+    card("Copy bot cripto", "US$ " + fmt(c.equity), `${pct(c.ret)} · ${c.closed} trades · seguindo ${c.following.length}`) +
+    card("Copy bot memecoin", "US$ " + fmt(m.equity), `${pct(m.ret)} · ${m.closed} trades · ${m.positions.length} abertas`) +
+    card("Melhor binária (paga 80%)", bestBin ? usd(bestBin.p80) : "–", bestBin ? `${bestBin.name} · acerto ${fmt(bestBin.win_rate, 1)}%` : "") +
+    card("Agentes ativos", s.crypto.length + s.meme.length + s.binary.length, "30 cripto · 26 memecoin · 13 binárias");
+
+  eqC.setData(c.history.map(([t, v]) => ({ time: t, value: v })));
+  eqM.setData(m.history.map(([t, v]) => ({ time: t, value: v })));
+  const logs = [...c.log.map(x => ({ ...x, n: "cripto" })), ...m.log.map(x => ({ ...x, n: "meme" }))].sort((a, b) => b.ts - a.ts).slice(0, 60);
+  $("#log").innerHTML = logs.map(x => `<div><time>${time(x.ts)}</time><b>${x.n}</b> · ${x.msg}</div>`).join("") || '<div class="sub">nada ainda</div>';
+
+  table($("#tbl-crypto"), agentCols, s.crypto, agentRow);
+  table($("#tbl-meme"), agentCols, s.meme, agentRow);
+
+  const be = s.binary_breakeven;
+  $("#bin-note").innerHTML = `Aposta fixa de US$ 10, vencimento em 1 ou 5 minutos, sobre BTC, ETH e SOL. ` +
+    `Para empatar, o acerto precisa ser de pelo menos <b>${be.p80}%</b> (paga 80%), <b>${be.p85}%</b> (85%) ou <b>${be.p90}%</b> (90%). ` +
+    `Os macacos (aleatórios) acertam em média <b>${fmt(s.binary_monkey_wr, 1)}%</b>.`;
+  table($("#tbl-bin"), [
+    { h: "Agente", f: r => r.name, l: 1 }, { h: "Estratégia", f: r => r.kind, l: 1 },
+    { h: "Apostas", f: r => r.bets }, { h: "Acerto", f: r => fmt(r.win_rate, 1) + "%" },
+    { h: "Saldo (paga 80%)", f: r => usd(r.p80) }, { h: "Saldo (paga 85%)", f: r => usd(r.p85) }, { h: "Saldo (paga 90%)", f: r => usd(r.p90) },
+  ], s.binary, r => r.name.includes("macaco") ? "monkey" : "");
+
+  table($("#tbl-mpos"), [
+    { h: "Moeda", f: r => r.symbol, l: 1 }, { h: "Copiando", f: r => r.agent, l: 1 },
+    { h: "Custo", f: r => "US$ " + fmt(r.cost) }, { h: "Valor", f: r => "US$ " + fmt(r.value) }, { h: "Resultado", f: r => usd(r.value - r.cost) },
+  ], m.positions);
+  table($("#tbl-mlist"), [
+    { h: "Moeda", f: r => `<a href="${r.url}" target="_blank" rel="noopener">${r.symbol}</a>`, l: 1 },
+    { h: "5 min", f: r => pct(r.chg_m5) }, { h: "1 h", f: r => pct(r.chg_h1) },
+    { h: "Liquidez", f: r => "US$ " + fmt(r.liq / 1000, 0) + "k" }, { h: "Vol. 1h", f: r => "US$ " + fmt(r.vol_h1 / 1000, 0) + "k" },
+    { h: "Compras/vendas 5m", f: r => `${r.buys_m5}/${r.sells_m5}` },
+  ], s.memes);
+
+  $("#replist").innerHTML = s.reports.map(n => `<button data-r="${n}">${n.replace(".md", "")}</button>`).join("") || '<span class="sub">o primeiro relatório sai à meia-noite (UTC) ou quando você clicar em "Gerar relatório agora"</span>';
+  document.querySelectorAll("#replist button").forEach(b => b.onclick = () => showReport(b.dataset.r));
+}
+async function showReport(name) {
+  const r = await (await fetch(`/api/report?name=${encodeURIComponent(name)}`)).json();
+  $("#report").textContent = r.text || "não encontrado";
+}
+$("#newrep").onclick = () => showReport("novo").then(refresh);
+
+async function loop() { try { await refresh(); await loadCandles(); } catch (e) { $("#updated").textContent = "sem conexão com o laboratório"; } }
+loop(); setInterval(loop, 10000);
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Copie para config.toml e ajuste.
+
+[general]
+testnet = true        # true = testnet.binance.vision (dinheiro de mentira)
+dry_run = true        # true = só simula as ordens da conta seguidora (não envia nada)
+poll_seconds = 5      # de quanto em quanto tempo consulta os mestres
+symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+db_path = "copytrader.db"
+
+# Cada mestre precisa de MASTER_<NOME>_KEY e MASTER_<NOME>_SECRET no .env
+# budget_usdt = quanto da conta seguidora fica reservado para copiar esse mestre
+[[masters]]
+name = "alfa"
+budget_usdt = 200
+
+[[masters]]
+name = "beta"
+budget_usdt = 100
+
+[brain]
+warmup_days = 30            # dias de histórico usados para avaliar cada mestre ao iniciar
+min_closed_trades = 5       # abaixo disso o mestre fica "em teste"
+probation_multiplier = 0.5  # mestre em teste usa só metade do orçamento
+max_multiplier = 1.5        # mestre muito bom pode usar até 150% do orçamento
+max_drawdown_pct = 25.0     # passou disso -> mestre pausado
+min_profit_factor = 0.8     # lucro/perda abaixo disso -> mestre pausado
+
+[risk]
+max_order_usdt = 50          # nenhuma ordem passa disso
+min_order_usdt = 6           # Binance recusa ordens muito pequenas (~5 USDT)
+daily_loss_limit_usdt = 30   # perdeu isso no dia -> para de abrir compras até 00:00 UTC
